@@ -19,12 +19,3 @@ def prettify(elem):
     rough_string = ET.tostring(elem, 'utf-8')
     reparsed = minidom.parseString(rough_string)
     return reparsed.toprettyxml(indent="".join([' '] * 4))
-
-
-def output(tree):
-    """
-    Takes tree generated and creates an xml file in the root
-    directory.
-    """
-    with open('estimate.xml', 'w') as output:
-        output.write(prettify(tree))

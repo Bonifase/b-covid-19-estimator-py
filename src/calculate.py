@@ -1,6 +1,3 @@
-import math
-
-
 def result_calculator(data, multiplier):
     impact = {}
     #  number of infected people in days from now
@@ -17,7 +14,6 @@ def result_calculator(data, multiplier):
     impact['infectionsByRequestedTime'] = impact[
         'currentlyInfected'] * (2**number_of_doubles)
 
-    #  Challenge 2
     #  estimated severe positive cases that require hospitalization to recover.
     impact['severeCasesByRequestedTime'] = int(
       impact['infectionsByRequestedTime'] * 0.15
@@ -42,8 +38,8 @@ def result_calculator(data, multiplier):
     pop_income = data[
         'region']['avgDailyIncomePopulation'] * data[
             'region']['avgDailyIncomeInUSD']
-    dollars_in_flight = impact[
-        'infectionsByRequestedTime'] * pop_income * total_number_of_days
+    dollars_in_flight = (impact[
+        'infectionsByRequestedTime'] * pop_income) / total_number_of_days
     impact['dollarsInFlight'] = int(dollars_in_flight)
 
     return impact
