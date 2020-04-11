@@ -1,16 +1,19 @@
+import math
+
+
 def result_calculator(data, multiplier):
     impact = {}
     #  number of infected people in days from now
     reported_cases = data.get('reportedCases')
     impact['currentlyInfected'] = reported_cases * multiplier
-    total_numbe_of_days = data['timeToElapse']
+    total_number_of_days = data['timeToElapse']
 
     periods_multplier = {'weeks': 7, 'months': 30}
     if data['periodType'] in periods_multplier.keys():
-        total_numbe_of_days = data['timeToElapse'] * periods_multplier[
+        total_number_of_days = data['timeToElapse'] * periods_multplier[
             data['periodType']]
 
-    number_of_doubles = total_numbe_of_days // 3
+    number_of_doubles = total_number_of_days // 3
     impact['infectionsByRequestedTime'] = impact[
         'currentlyInfected'] * (2**number_of_doubles)
 
@@ -27,7 +30,6 @@ def result_calculator(data, multiplier):
         available_beds - impact['severeCasesByRequestedTime']
     )
 
-    # Challenge 3
     # number of severe positive cases that will require ICU care.
     impact['casesForICUByRequestedTime'] = int(
       impact['infectionsByRequestedTime'] * 0.05
@@ -37,8 +39,11 @@ def result_calculator(data, multiplier):
       impact['infectionsByRequestedTime'] * 0.02
     )
     # money the economy is likely to lose daily
-    impact['dollarsInFlight'] = float(int((
-        impact['infectionsByRequestedTime'] * 0.65 * 1.5
-    ) / 30))
+    pop_income = data[
+        'region']['avgDailyIncomePopulation'] * data[
+            'region']['avgDailyIncomeInUSD']
+    dollars_in_flight = impact[
+        'infectionsByRequestedTime'] * pop_income * total_number_of_days
+    impact['dollarsInFlight'] = int(dollars_in_flight)
 
     return impact
