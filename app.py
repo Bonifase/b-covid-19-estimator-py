@@ -3,11 +3,15 @@ import time
 import xml.etree.ElementTree as ET
 from flask import Flask, request, jsonify, g, Response
 from src.estimator import estimator
-from src.generate_lines import get_logs_lines
 from src.xml_generator import create_xml_tree, prettify
 
 app = Flask(__name__)
 logging.basicConfig(filename='api_logs.txt', level=logging.INFO)
+
+
+@app.before_request
+def get_time():
+    g.start = time.time()
 
 
 @app.route(
@@ -23,6 +27,9 @@ def get_estimation(data_format):
     """
     data = request.get_json()
     result = estimator(data)
+    if data_format not in ['xml', 'json', None]:
+        return jsonify({
+            'message': 'Wrong data format. Check your URL'}), 400
 
     if data_format == 'xml':
         xml_file = prettify(create_xml_tree(ET.Element('root'), result))
@@ -30,46 +37,43 @@ def get_estimation(data_format):
             xml_file,
             mimetype='text/xml',
             content_type='application/xml')
+
     if data_format == 'json':
-        return jsonify(result)
-    return jsonify(result)
+        return jsonify(result), 200
+
+    return jsonify(result), 200
 
 
-@app.route('/api/v1/on-covid-19/logs', methods=['GET'])
+@app.route('/api/v1/on-covid-19/logs', methods=['GET', 'POST'])
 def get_logs():
     """
     Endpoint that returns logs in a text file.
     """
+    if request.method != 'GET':
+        return jsonify({'error': 'Method not arrowed'}), 405
+
     data_logs = []
     with open('api_logs.txt', 'rt') as f:
         data = f.readlines()
     for line in data:
-        if 'root' in line and 'logs' not in line and '404' not in line:
-            data_logs.append(line[10:])
-
-    with open('request_logs.txt', 'w') as filehandle:
-        for list_item in data_logs:
-            filehandle.write('%s\n' % list_item)
-    log_file = 'request_logs.txt'
-    data = get_logs_lines(log_file, 100)
+        if 'root' in line and '404' not in line:
+            data_logs.append(line[10:] + '\n')
 
     return Response(
-        ''.join(data),
+        ''.join(data_logs),
         mimetype='text/plain',
-        content_type='text/plain'
         )
 
 
 @app.after_request
 def log_request_info(response):
-    g.request_start_time = time.time()
-    g.request_time = lambda: "%.5fs" % (time.time() - g.request_start_time)
-    status_as_integer = response.status_code
-    logging.info('{method} {path} {status} {time}'.format(
-        method=request.method,
-        path=request.path,
-        status=status_as_integer,
-        time=g.request_time()))
+    """Produces the app logs after response is made"""
+
+    elapsed_time = int((time.time() - g.start)*1000)
+    status_code = response.status.split()[0]
+    logging.info(
+        f"{request.method}\t\t{request.path}\t\t{status_code}\t\t{str(elapsed_time).zfill(2)}ms"  # noqa
+    )
     return response
 
 
