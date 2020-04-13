@@ -3,6 +3,11 @@ import time
 import xml.etree.ElementTree as ET
 from flask import Flask, request, jsonify, g, Response
 from src.estimator import estimator
+from src.validate_user_input import (
+    get_region_data,
+    validate_input_data,
+    validate_input_type
+)
 from src.xml_generator import create_xml_tree, prettify
 
 app = Flask(__name__)
@@ -26,7 +31,18 @@ def get_estimation(data_format):
     if provided as part of the url.
     """
     data = request.get_json()
-    result = estimator(data)
+    region_data = get_region_data(data)
+    try:
+        cleaned_data = validate_input_data(region_data)
+    except AssertionError as err:
+        return jsonify({'error': err.args[0]}), 409
+
+    try:
+        validate_input_type(cleaned_data)
+    except AssertionError as err:
+        return jsonify({'error': err.args[0]}), 409
+
+    result = estimator(cleaned_data)
     if data_format not in ['xml', 'json', None]:
         return jsonify({
             'message': 'Wrong data format. Check your URL'}), 400
